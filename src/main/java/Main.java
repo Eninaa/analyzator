@@ -9,6 +9,7 @@ import java.util.ArrayList;
 public class Main {
     // есть ли вообще поля, похожие на адрес
     // идея пайплайна - выбрать строковые поля, из них выбрать поля в которых >= 3 слов (разделитель - пробел), из оставшихся выбрать те в которых встречаются слова из словарей
+    // в классе Pipelines лежит часть пайплайна для этого метода
     public static boolean hasAddressFeatures() {
         boolean hasAddressFeatures = false;
         return hasAddressFeatures;
