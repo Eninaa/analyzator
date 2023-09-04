@@ -41,12 +41,7 @@ fun hasGeometry(): Boolean {
 val isConnected: Boolean
     // связан на какую-то минимальную долю
     get() = false
-val isEnriched: Boolean
-    // есть ли обогащающие поля из ОАП
-    get() = false
-val isPublished: Boolean
-    // был опубликован на карту
-    get() = false
+
 
 fun fieldsEstimation() {
     /*
@@ -86,6 +81,7 @@ fun fieldsEstimation() {
 
 
 fun main(args: Array<String>) {
+    println(args[0])
     Analyzer().analyze(args[0])
 
 

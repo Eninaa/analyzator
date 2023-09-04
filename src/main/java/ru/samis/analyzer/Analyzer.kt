@@ -73,11 +73,12 @@ class Analyzer : AutoCloseable {
                 put("has_geometry", true)
                 put("has_address", true)
                 put("connected", true)
-                put("enriched", true)
-                put("published", true)
+                put("enriched", isEnriched(userDatasetId))
+                put("published", isPublished(userDatasetId))
             })
             put("fieldsQuality", computeFieldsQuality(userDatasetId))
         }
+
 
         datasets.updateMany(
             Filters.eq("dataset", userDatasetId),
@@ -181,6 +182,46 @@ class Analyzer : AutoCloseable {
 
         (result[fieldName] as Document)["validness"] = if (processedCount > 0) 1.0 * valid / processedCount else 0
     }
+
+
+    private fun isEnriched(dataset: String): Boolean {
+        var result = false
+
+        val metadataDb = client.getDatabase(options.getString("metadataDb"))
+        val structureDataset = metadataDb.getCollection(options.getString("structureDataset"))
+
+        val struct = structureDataset.find(
+            Filters.and(
+                Filters.eq("database", options.getString("datasetsDb")),
+                Filters.eq("dataset", dataset)
+            )
+        ).firstOrNull() ?: return result
+
+        val fields = struct["fields"] as List<Document>
+
+        for (field in fields) {
+            if (field.getString("name").equals("oarObject")) {
+                result = true
+                break
+            }
+        }
+        return result
+    }
+
+    private fun isPublished(dataset: String): Boolean {
+        var result = false
+
+        val metadataDb = client.getDatabase(options.getString("metadataDb"))
+        val userDatasets = metadataDb.getCollection(options.getString("datasetsDataset"))
+        val dataset = userDatasets.find(
+            Filters.eq("dataset", dataset)
+        ).firstOrNull() ?: return result
+        if (dataset.containsKey("geoportalLayerId")) result = true
+
+        return result
+    }
+
+
 
     override fun close() {
         client.close()
