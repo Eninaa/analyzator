@@ -4,8 +4,12 @@
     "metadataDb": "rk_metadata",
     "datasetsDb": "rk_userDatasets",
     "structureDataset": "datasetsStructure",
-    "datasetsDataset": "userDatasets"
+    "datasetsDataset": "userDatasets",
+    "tasksDatabase": "rk_metadata",
+    "tasksDataset": "tasks"
   },
   "params": {
+    "dataset": "ud_1_640b08cb9c09ed20680f7682",
+    "recordsToProcess": 10000
   }
 }

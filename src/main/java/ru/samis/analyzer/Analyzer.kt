@@ -12,6 +12,7 @@ import com.mongodb.client.model.*
 import org.bson.Document
 import org.bson.UuidRepresentation
 import org.bson.conversions.Bson
+import org.bson.types.ObjectId
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.*
@@ -36,8 +37,33 @@ class Analyzer : AutoCloseable {
                 .build()
         )
     }
+    private lateinit var userDatasetId: String
+    private var recordsToProcess: Int = -1
 
-    fun analyze(dataset: String) {
+    private fun init(taskId: String): Document? {
+        val tasksDb = client.getDatabase(options.getString("tasksDatabase"))
+        val tasksDataset = tasksDb.getCollection(options.getString("tasksDataset"))
+
+        val task = tasksDataset.find(Filters.eq("_id", ObjectId(taskId))).first() ?: run {
+            writeError("task $taskId not found")
+//            return null
+            null
+        }
+
+        recordsToProcess = task?.getInteger("recordsToProcess") ?: params.optInt("recordsToProcess", -1)
+        userDatasetId = task?.getString("dataset") ?: params.optString("dataset", null) ?: run {
+            writeError("dataset id not set")
+            return null
+        }
+
+        return task
+    }
+
+    fun analyze(taskId: String) {
+        init(taskId) ?: run {
+            writeError("init error")
+            return
+        }
         val metadataDb = client.getDatabase(options.getString("metadataDb"))
         val datasets = metadataDb.getCollection(options.getString("datasetsDataset"))
 
@@ -50,12 +76,12 @@ class Analyzer : AutoCloseable {
                 put("enriched", true)
                 put("published", true)
             })
-            put("fieldsQuality", computeFieldsQuality(dataset))
+            put("fieldsQuality", computeFieldsQuality(userDatasetId))
         }
 
         datasets.updateMany(
-            Filters.eq("dataset", dataset),
-            Updates.set("state1", state)
+            Filters.eq("dataset", userDatasetId),
+            Updates.set("state", state)
         )
     }
 
@@ -75,7 +101,7 @@ class Analyzer : AutoCloseable {
         val fields = struct["fields"] as List<Document>
         val indexes = datasetCollection.listIndexes()
 
-        val maxCount = 10000
+        val maxCount = if (recordsToProcess > 0) recordsToProcess else datasetCollection.countDocuments().toInt()
         val count = min(maxCount.toLong(), datasetCollection.countDocuments()).toInt()
         val basePipeline =
             if (datasetCollection.countDocuments() > maxCount) listOf(Aggregates.sample(maxCount)) else listOf<Bson>()

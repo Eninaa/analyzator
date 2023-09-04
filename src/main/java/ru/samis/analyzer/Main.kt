@@ -86,7 +86,7 @@ fun fieldsEstimation() {
 
 
 fun main(args: Array<String>) {
-    Analyzer().analyze("ud_1_640b08cb9c09ed20680f7682")
+    Analyzer().analyze(args[0])
 
 
     /*
