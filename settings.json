@@ -1,0 +1,11 @@
+{
+  "options": {
+    "ConnectionString": "mongodb://192.168.57.102:27017",
+    "metadataDb": "rk_metadata",
+    "datasetsDb": "rk_userDatasets",
+    "structureDataset": "datasetsStructure",
+    "datasetsDataset": "userDatasets"
+  },
+  "params": {
+  }
+}

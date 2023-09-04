@@ -1,3 +1,5 @@
+package ru.samis.analyzer;
+
 public class Pipelines {
     // hasAddressFeatures
     /*

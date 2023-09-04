@@ -1,0 +1,42 @@
+<component name="libraryTable">
+  <library name="github.fge.json.schema.validator" type="repository">
+    <properties maven-id="com.github.fge:json-schema-validator:2.2.6" />
+    <CLASSES>
+      <root url="jar://$MAVEN_REPOSITORY$/com/github/fge/json-schema-validator/2.2.6/json-schema-validator-2.2.6.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/com/google/code/findbugs/jsr305/3.0.0/jsr305-3.0.0.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/joda-time/joda-time/2.3/joda-time-2.3.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/com/googlecode/libphonenumber/libphonenumber/6.2/libphonenumber-6.2.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/com/github/fge/json-schema-core/1.2.5/json-schema-core-1.2.5.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/com/github/fge/uri-template/0.9/uri-template-0.9.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/com/github/fge/msg-simple/1.1/msg-simple-1.1.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/com/github/fge/btf/1.2/btf-1.2.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/com/google/guava/guava/16.0.1/guava-16.0.1.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/com/github/fge/jackson-coreutils/1.8/jackson-coreutils-1.8.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/com/fasterxml/jackson/core/jackson-databind/2.2.3/jackson-databind-2.2.3.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/com/fasterxml/jackson/core/jackson-annotations/2.2.3/jackson-annotations-2.2.3.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/com/fasterxml/jackson/core/jackson-core/2.2.3/jackson-core-2.2.3.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/org/mozilla/rhino/1.7R4/rhino-1.7R4.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/javax/mail/mailapi/1.4.3/mailapi-1.4.3.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/javax/activation/activation/1.1/activation-1.1.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/net/sf/jopt-simple/jopt-simple/4.6/jopt-simple-4.6.jar!/" />
+    </CLASSES>
+    <JAVADOC>
+      <root url="jar://$MAVEN_REPOSITORY$/com/github/fge/json-schema-validator/2.2.6/json-schema-validator-2.2.6-javadoc.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/com/google/code/findbugs/jsr305/3.0.0/jsr305-3.0.0-javadoc.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/joda-time/joda-time/2.3/joda-time-2.3-javadoc.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/com/googlecode/libphonenumber/libphonenumber/6.2/libphonenumber-6.2-javadoc.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/com/github/fge/json-schema-core/1.2.5/json-schema-core-1.2.5-javadoc.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/com/github/fge/uri-template/0.9/uri-template-0.9-javadoc.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/com/github/fge/msg-simple/1.1/msg-simple-1.1-javadoc.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/com/github/fge/btf/1.2/btf-1.2-javadoc.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/com/google/guava/guava/16.0.1/guava-16.0.1-javadoc.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/com/github/fge/jackson-coreutils/1.8/jackson-coreutils-1.8-javadoc.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/com/fasterxml/jackson/core/jackson-databind/2.2.3/jackson-databind-2.2.3-javadoc.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/com/fasterxml/jackson/core/jackson-annotations/2.2.3/jackson-annotations-2.2.3-javadoc.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/com/fasterxml/jackson/core/jackson-core/2.2.3/jackson-core-2.2.3-javadoc.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/org/mozilla/rhino/1.7R4/rhino-1.7R4-javadoc.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/net/sf/jopt-simple/jopt-simple/4.6/jopt-simple-4.6-javadoc.jar!/" />
+    </JAVADOC>
+    <SOURCES />
+  </library>
+</component>
