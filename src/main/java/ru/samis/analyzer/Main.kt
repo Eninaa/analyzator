@@ -6,7 +6,11 @@ import com.github.fge.jsonschema.core.load.configuration.LoadingConfiguration
 import com.github.fge.jsonschema.main.JsonSchema
 import com.github.fge.jsonschema.main.JsonSchemaFactory
 import com.mongodb.BasicDBObject
+import com.mongodb.ConnectionString
+import com.mongodb.MongoClientSettings
 import com.mongodb.client.MongoClients
+import com.mongodb.client.model.Projections
+import org.bson.UuidRepresentation
 import org.json.JSONObject
 import java.io.File
 import java.io.FileInputStream
@@ -81,8 +85,32 @@ fun fieldsEstimation() {
 
 
 fun main(args: Array<String>) {
-    println(args[0])
-    Analyzer().analyze(args[0])
+//    Analyzer().analyzeTask(args[0])
+
+    val settings by lazy { JSONObject(File("settings.json").readText()) }
+    val params by lazy { settings.getJSONObject("params") }
+    val options by lazy { settings.getJSONObject("options") }
+    val client by lazy {
+        MongoClients.create(
+            MongoClientSettings.builder()
+                .applyConnectionString(ConnectionString(options.getString("ConnectionString")))
+                .uuidRepresentation(UuidRepresentation.JAVA_LEGACY)
+                .build()
+        )
+    }
+    val collection = client.getDatabase("rk_metadata").getCollection("userDatasets")
+    val docs = collection.find().projection(Projections.include("dataset"))
+    val count = collection.countDocuments()
+    var progress = 0
+    for (doc in docs) {
+        Analyzer().analyzeDataset(doc.getString("dataset"))
+        progress++
+//        if (progress % 1000 == 0)
+            println("$progress / $count")
+        println()
+    }
+
+//    Analyzer().analyzeTask(args[0])
 
 
     /*

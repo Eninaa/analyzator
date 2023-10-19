@@ -8,6 +8,7 @@ import com.github.fge.jsonschema.main.JsonSchemaFactory
 import com.mongodb.ConnectionString
 import com.mongodb.MongoClientSettings
 import com.mongodb.client.MongoClients
+import com.mongodb.client.MongoCollection
 import com.mongodb.client.model.*
 import org.bson.Document
 import org.bson.UuidRepresentation
@@ -15,9 +16,10 @@ import org.bson.conversions.Bson
 import org.bson.types.ObjectId
 import org.json.JSONArray
 import org.json.JSONObject
+import org.locationtech.jts.io.WKTReader
 import java.io.*
-import java.lang.Exception
 import java.util.ArrayList
+import kotlin.Exception
 import kotlin.math.ln
 import kotlin.math.min
 
@@ -59,24 +61,36 @@ class Analyzer : AutoCloseable {
         return task
     }
 
-    fun analyze(taskId: String) {
+    fun analyzeTask(taskId: String) {
         init(taskId) ?: run {
             writeError("init error")
             return
         }
+
+        println("analyzing task $taskId")
+        analyze()
+    }
+
+    fun analyzeDataset(datasetId: String) {
+        userDatasetId = datasetId
+        recordsToProcess = params.optInt("recordsToProcess", -1)
+
+        analyze()
+    }
+
+    private fun analyze() {
+        println("analyzing dataset $userDatasetId")
+        var time = -System.nanoTime()
         val metadataDb = client.getDatabase(options.getString("metadataDb"))
         val datasets = metadataDb.getCollection(options.getString("datasetsDataset"))
 
-        val state = Document().apply {
-            put("properties", Document().apply {
-                put("has_address_features", true)
-                put("has_geometry", true)
-                put("has_address", true)
-                put("connected", true)
-                put("enriched", isEnriched(userDatasetId))
-                put("published", isPublished(userDatasetId))
-            })
-            put("fieldsQuality", computeFieldsQuality(userDatasetId))
+        val state = computeFieldsQuality(userDatasetId)
+        (state["properties"] as Document).apply {
+            put("has_address_features", true)
+            put("has_address", true)
+            put("connected", true)
+            put("enriched", isEnriched(userDatasetId))
+            put("published", isPublished(userDatasetId))
         }
 
 
@@ -84,14 +98,25 @@ class Analyzer : AutoCloseable {
             Filters.eq("dataset", userDatasetId),
             Updates.set("state", state)
         )
+        time += System.nanoTime()
+        println("analyze time ${time / 1e6}")
     }
 
     private fun computeFieldsQuality(dataset: String): Document {
-        val result = Document()
+        val wktFields = mutableMapOf<String, Int>()
+        var doublesCount = 0
+        val fieldsQuality = Document()
+        val properties = Document()
+        val result = Document().apply {
+            put("fieldsQuality", fieldsQuality)
+            put("properties", properties)
+        }
+
         val metadataDb = client.getDatabase(options.getString("metadataDb"))
         val datasetsDb = client.getDatabase(options.getString("datasetsDb"))
         val structureDataset = metadataDb.getCollection(options.getString("structureDataset"))
         val datasetCollection = datasetsDb.getCollection(dataset)
+        println("size ${datasetCollection.countDocuments()}")
         val struct = structureDataset.find(
             Filters.and(
                 Filters.eq("database", options.getString("datasetsDb")),
@@ -103,56 +128,118 @@ class Analyzer : AutoCloseable {
         val indexes = datasetCollection.listIndexes()
 
         val maxCount = if (recordsToProcess > 0) recordsToProcess else datasetCollection.countDocuments().toInt()
-        val count = min(maxCount.toLong(), datasetCollection.countDocuments()).toInt()
-        val basePipeline =
-            if (datasetCollection.countDocuments() > maxCount) listOf(Aggregates.sample(maxCount)) else listOf<Bson>()
+        val countForProcessing = min(maxCount.toLong(), datasetCollection.countDocuments()).toInt()
+        val basePipeline = mutableListOf<Bson>()
+        if (datasetCollection.countDocuments() > maxCount)
+            basePipeline += Aggregates.sample(maxCount)
 
         for (field in fields) {
             val name = field.getString("name")
+            if (field.isEmpty()) continue
             val type = field.getString("type").toLowerCase()
             val indexed = indexes.find { index ->
                 (index["weights"] as Document?)?.containsKey(name) ?: false ||
                         (index["key"] as Document).containsKey(name)
             }
 
-            val notEmptyPipeline = ArrayList(basePipeline).plus(Aggregates.match(Filters.ne(name, null)))
-            val notEmptyCountPipeline = ArrayList(notEmptyPipeline).plus(Aggregates.count())
+            val notEmptyPipeline = ArrayList(basePipeline) + Aggregates.match(Filters.ne(name, null))
+            val notEmptyCountPipeline = ArrayList(notEmptyPipeline) + Aggregates.count()
             val notEmptyCount = datasetCollection.aggregate(notEmptyCountPipeline).first()?.getInteger("count")
 
             val typeMatchedCount = try {
-                val typeMatchingPipeline =
-                    ArrayList(notEmptyPipeline).plus(Aggregates.match(Filters.type(name, type)))
-                val typeMatchingCountPipeline = ArrayList(typeMatchingPipeline).plus(Aggregates.count())
+                val typeMatchingPipeline = ArrayList(notEmptyPipeline) + Aggregates.match(Filters.type(name, type))
+                val typeMatchingCountPipeline = ArrayList(typeMatchingPipeline) + Aggregates.count()
                 datasetCollection.aggregate(typeMatchingCountPipeline).first()?.getInteger("count")
             } catch (e: Exception) {
                 null
             }
 
-            val entropyPipeline =
-                ArrayList(notEmptyPipeline).plus(Aggregates.group(name, Accumulators.sum("count", 1)))
+            val entropyPipeline = ArrayList(notEmptyPipeline) + Aggregates.group(name, Accumulators.sum("count", 1))
             val entropyCount = datasetCollection.aggregate(entropyPipeline).first()?.getInteger("count")
+            val entropy = notEmptyCount?.let {
+                entropyCount?.let {
+                    val entropy = 1.0 * it / notEmptyCount
+                    entropy - entropy * ln(entropy)
+                }
+            }
 
-            result[name] = Document().apply {
+            fieldsQuality[name] = Document().apply {
                 if (notEmptyCount != null) {
                     put("typeMatching", typeMatchedCount?.let { 1.0 * it / notEmptyCount })
-                    put("entropy", entropyCount?.let {
-                        val entropy = 1.0 * it / notEmptyCount
-                        entropy - entropy * ln(entropy)
-                    })
+                    put("entropy", entropy)
                 }
-                put("fullness", notEmptyCount?.let { 1.0 * it / count })
+                put("fullness", notEmptyCount?.let { 1.0 * it / countForProcessing })
                 put("indexed", indexed != null)
             }
 
-            if (type == "geometry") {
-                val geometryPipeline =
-                    ArrayList(notEmptyPipeline).plus(Aggregates.project(Document(name, 1)))
-                val geometries = datasetCollection.aggregate(geometryPipeline)
-                computeGeometryQuality(name, geometries, result)
+            when (type) {
+                "geometry" -> {
+                    val geometryPipeline = ArrayList(notEmptyPipeline) + Aggregates.project(Document(name, 1))
+                    val geometries = datasetCollection.aggregate(geometryPipeline)
+                    computeGeometryQuality(name, geometries, fieldsQuality)
+                    properties["has_geometry"] = (fieldsQuality[name] as Document).getDouble("validness") > 0.5
+                }
+
+                "string" -> {
+                    var time = -System.nanoTime()
+                    val validCount = countWKT(datasetCollection, name)
+                    time += System.nanoTime()
+                    println("$name checking for WKT time ${time / 1e6} count $validCount")
+                    if (validCount > 0)
+                        wktFields[name] = validCount
+                }
+
+                "double" -> {
+                    entropy?.let {
+                        if (it > 0.8)
+                            doublesCount++
+                    }
+                }
             }
         }
 
+        val maxWkt = wktFields.maxByOrNull { entry -> 1.0 * entry.value / countForProcessing }
+        properties["has_geometry_features"] = doublesCount >= 2 || maxWkt != null
+
         return result
+    }
+
+    private fun countWKT(dataset: MongoCollection<Document>, field: String): Int {
+        var validCount = 0
+        forEachNonEmpty(dataset, field) { valueNonTyped ->
+            try {
+                val value = valueNonTyped as String
+                if (isWKT(value))
+                    validCount++
+            } catch (e: Exception) {
+            }
+        }
+        return validCount
+    }
+
+    private fun forEachNonEmpty(dataset: MongoCollection<Document>, field: String, action: (Any) -> Unit) {
+        if (field.isBlank()) return
+        val documents = dataset.find(Filters.ne(field, null)).projection(Projections.include(field))
+        for (doc in documents) {
+            doc[field]?.let(action)
+        }
+    }
+
+    private val wktReader = WKTReader()
+    private fun isWKT(value: String): Boolean {
+        try {
+            try {
+                wktReader.read(value) ?: return false
+                return true
+            } catch (e: Exception) {
+            }
+        } catch (e: Exception) {
+        }
+        return false
+    }
+
+    private fun isXY(value: Double) {
+
     }
 
     private fun computeGeometryQuality(fieldName: String, geometries: Iterable<Document>, result: Document) {
@@ -175,7 +262,7 @@ class Analyzer : AutoCloseable {
 //                    println(validInstance)
             if (validInstance) valid++
             processedCount++
-            if (processedCount % 10000 == 0) println(processedCount)
+//            if (processedCount % 10000 == 0) println(processedCount)
         }
         time += System.nanoTime()
         println("geometry validation time ${time / 1e6}")
@@ -220,7 +307,6 @@ class Analyzer : AutoCloseable {
 
         return result
     }
-
 
 
     override fun close() {
