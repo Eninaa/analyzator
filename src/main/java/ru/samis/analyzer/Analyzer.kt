@@ -108,6 +108,15 @@ class Analyzer : AutoCloseable {
         )
         time += System.nanoTime()
         println("analyze time ${time / 1e6}")
+
+        if (recordsToProcess <= 0) {
+            val datasetsDb = client.getDatabase(options.getString("datasetsDb"))
+            val datasetCollection = datasetsDb.getCollection(userDatasetId)
+
+            recordsToProcess = datasetCollection.countDocuments().toInt()
+        }
+
+        writeComplete(recordsToProcess)
     }
 
     private fun computeFieldsQuality(dataset: String): Document {
